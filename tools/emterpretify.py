@@ -19,6 +19,7 @@ LOG_CODE = os.environ.get('EMCC_LOG_EMTERPRETER_CODE')
 
 ZERO = False
 ASYNC = False
+JIT = False
 ASSERTIONS = False
 PROFILING = False
 SWAPPABLE = False
@@ -27,11 +28,12 @@ ADVISE = False
 MEMORY_SAFE = False
 
 def handle_arg(arg):
-  global ZERO, ASYNC, ASSERTIONS, PROFILING, FROUND, ADVISE, MEMORY_SAFE
+  global ZERO, ASYNC, ASSERTIONS, PROFILING, FROUND, ADVISE, MEMORY_SAFE, JIT
   if '=' in arg:
     l, r = arg.split('=')
     if l == 'ZERO': ZERO = int(r)
     elif l == 'ASYNC': ASYNC = int(r)
+    elif l == 'JIT': JIT = int(r)
     elif l == 'ASSERTIONS': ASSERTIONS = int(r)
     elif l == 'PROFILING': PROFILING = int(r)
     elif l == 'FROUND': FROUND = int(r)
@@ -669,7 +671,7 @@ def make_emterpreter(zero=False):
 )
 
   return process(r'''
-function emterpret%s(pc) {
+function %semterpret%s(pc) {
  //Module.print('emterpret: ' + pc + ',' + EMTSTACKTOP);
  pc = pc | 0;
  var %sinst = 0, lx = 0, ly = 0, lz = 0;
@@ -688,6 +690,7 @@ function emterpret%s(pc) {
  }
  assert(0);
 }''' % (
+  '' if not JIT else '__',
   '' if not zero else '_z',
   'sp = 0, ' if not zero else '',
   '' if not ASYNC and not MEMORY_SAFE else 'var ld = +0;',

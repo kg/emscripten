@@ -574,6 +574,7 @@ var EMTERPRETIFY_ADVISE = 0; // Performs a static analysis to suggest which func
                              // all things reachable from that function, as they may need to be in the YIELDLIST as well).
                              // Note that this depends on things like inlining. If you run this with different inlining than
                              // when you use the list, it might not work.
+var EMTERPRETIFY_JIT = 0; // Allows replacing the default emterpreter implementation with a custom one (for example, a JIT).
 
 var RUNNING_JS_OPTS = 0; // whether js opts will be run, after the main compiler
 var BOOTSTRAPPING_STRUCT_INFO = 0; // whether we are in the generate struct_info bootstrap phase

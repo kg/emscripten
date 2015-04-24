@@ -527,7 +527,20 @@ function _emscripten_asm_const_%d(%s) {
       asm_runtime_funcs += ['setAsync']
 
     if settings.get('EMTERPRETIFY'):
-      asm_runtime_funcs += ['emterpret']
+      if settings.get('EMTERPRETIFY_JIT'):
+        asm_runtime_funcs += ['__emterpret']
+        basic_funcs += ["emterpret"]
+        asm_setup += (
+            "function emterpret (pc) {\n" +
+            "  if (Module['custom_emterpreter'])\n" +
+            "    return Module.custom_emterpreter(pc);\n" +
+            "  else\n" +
+            "    return asm.__emterpret(pc);\n" +
+            "};\n"
+          )
+      else:
+        asm_runtime_funcs += ['emterpret']
+
       if settings.get('EMTERPRETIFY_ASYNC'):
         asm_runtime_funcs += ['setAsyncState', 'emtStackSave']
 
@@ -635,6 +648,7 @@ function ftCall_%s(%s) {%s
     # sent data
     the_global = '{ ' + ', '.join(['"' + math_fix(s) + '": ' + s for s in fundamentals]) + ' }'
     sending = '{ ' + ', '.join(['"' + math_fix(s) + '": ' + s for s in basic_funcs + global_funcs + basic_vars + basic_float_vars + global_vars]) + ' }'
+
     # received
     receiving = ''
     if settings['ASSERTIONS']:
