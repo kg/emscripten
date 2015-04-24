@@ -64,6 +64,7 @@ YIELDLIST = ['stackSave', 'stackRestore', 'stackAlloc', 'setThrew', '_memset'] #
 SYNC_FUNCS = set(['_emscripten_sleep', '_emscripten_sleep_with_yield', '_emscripten_wget_data', '_emscripten_idb_load', '_emscripten_idb_store', '_emscripten_idb_delete'])
 
 OPCODES = [ # l, lx, ly etc - one of 256 locals
+  'EOF',     # [0, 0, 0]            end-of-function marker to aid jits & analyzers
   'SET',     # [lx, ly, 0]          lx = ly (int or float, not double)
   'SETVI',   # [l, vl, vh]          l = v (16-bit signed int)
   'SETVIB',  # [l, 0, 0] [..v..]    l = 32-bit int in next 32-bit instruction
@@ -297,6 +298,7 @@ def make_assign(left, right, temp): # safely assign, taking into account memory 
   return temp + ' = ' + right + '; ' + left + ' = ' + temp + ';'
 
 CASES = {}
+CASES[ROPCODES['EOF']] = "var end_of_function = 0 | 0; assert(end_of_function);"
 CASES[ROPCODES['SET']] = get_access('lx') + ' = ' + get_coerced_access('ly') + ';'
 CASES[ROPCODES['GETST']] = get_access('lx') + ' = STACKTOP;'
 CASES[ROPCODES['SETST']] = 'STACKTOP = ' + get_coerced_access('lx') + ';'
@@ -525,6 +527,9 @@ CASES[ROPCODES['TSLOWD']] = get_access('inst >>> 16', s='d') + ' = ' + get_coerc
 opcode_used = {}
 for opcode in OPCODES:
   opcode_used[opcode] = False
+
+# Never prune the EOF marker.
+opcode_used[ROPCODES['EOF']] = True
 
 def is_function_table(name):
   return name.startswith('FUNCTION_TABLE_')
@@ -991,6 +996,7 @@ if __name__ == '__main__':
       process_code(func, curr, absolute_targets)
       #print >> sys.stderr, 'processed bytecode for %s:' % func, curr
       all_code += curr
+      all_code += ["EOF", 0, 0, 0]
       func = None
       lines[i] = ''
     elif line.startswith('// return type: ['):
@@ -1019,6 +1025,8 @@ if __name__ == '__main__':
         for k in range(4):
           code[j + k] = value[k]
 
+    print repr(code)
+
     # finalize instruction string names to opcodes
     for i in range(len(code)/4):
       j = i*4
@@ -1032,6 +1040,7 @@ if __name__ == '__main__':
       assert type(v) == int and v >= 0 and v < 256, [i, v, 'in', code[i-5:i+5], ROPCODES]
 
   post_process_code(all_code)
+  print repr(all_code)
 
   # create new mem init
   mem_init = mem_init + all_code
